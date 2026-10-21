@@ -7,6 +7,7 @@
 // from each node id, so the tables look realistic without inventing a schema.
 import { PAGES_TREE, WIDGETS_TREE, VARIANTS, type TreeNode } from "./data";
 import { allWidgets, productionWidgetId } from "./widget-create";
+import { PRODUCTION_WIDGET_SUBPAGES } from "./production-widget-subpages";
 
 // The browse layer serves two parallel collection contexts that share identical
 // table machinery: Pages (PAGES_TREE) and Widgets (WIDGETS_TREE). A single
@@ -380,7 +381,11 @@ export function buildWidgetRows(): WidgetRow[] {
       modified: w.modified,
       createdAt: w.createdAt,
       modifiedAt: w.modifiedAt,
-      children: [],
+      children: (PRODUCTION_WIDGET_SUBPAGES[w.slug] ?? []).map((c, i) => ({
+        id: `${id}-sub-${i}`,
+        name: c.name,
+        status: c.status,
+      })),
     };
   });
 }

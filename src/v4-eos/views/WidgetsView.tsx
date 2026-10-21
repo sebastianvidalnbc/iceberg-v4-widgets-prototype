@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Button, IconButton } from "../ui-lib/Button";
 import { Badge } from "../ui-lib/Badge";
 import { SearchInput } from "../ui-lib/TextInput";
@@ -6,6 +6,7 @@ import { FilterChip } from "../ui-lib/FilterChip";
 import { TableFooter } from "../ui-lib/TableFooter";
 import { EmptyState } from "../ui-lib/EmptyState";
 import { buildWidgetRows, routes, navigate, type WidgetRow, type WidgetFormat } from "../browse";
+import type { WidgetChildRow } from "../browse";
 import { SortHeaderCell, compareSortValues, nextSort, type SortState } from "../ui-lib/SortableHeader";
 import { LayoutPicker } from "../regions/LayoutPicker";
 import { createWidgetFromLayout } from "../widget-create";
@@ -50,6 +51,14 @@ export function WidgetsView() {
   const [sort, setSort] = useState<SortState<SortKey>>({ key: "modifiedAt", dir: "desc" });
   const onSort = (key: SortKey) => setSort((prev) => nextSort(prev, key));
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Rows expand independently to show the pages each widget is used on.
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
+  const toggleRow = (id: string) =>
+    setOpenIds((cur) => {
+      const next = new Set(cur);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const q = query.trim().toLowerCase();
   const searched = q ? allRows.filter((r) => r.slug.toLowerCase().includes(q)) : allRows;
@@ -132,7 +141,14 @@ export function WidgetsView() {
             description="Try a different slug or clear the search and format filter."
           />
         ) : (
-          pageRows.map((r) => <WidgetRowItem key={r.id} row={r} />)
+          pageRows.map((r) => (
+            <WidgetRowItem
+              key={r.id}
+              row={r}
+              expanded={openIds.has(r.id)}
+              onToggle={() => toggleRow(r.id)}
+            />
+          ))
         )}
       </div>
 
@@ -158,30 +174,69 @@ export function WidgetsView() {
   );
 }
 
-function WidgetRowItem({ row }: { row: WidgetRow }) {
+function WidgetRowItem({
+  row,
+  expanded,
+  onToggle,
+}: {
+  row: WidgetRow;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const open = () => navigate(routes.editor("widget", row.id));
   return (
-    <div className="ui-ws-browse__row ui-ws-browse__row--widgets" role="row">
-      <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell">
-        <span className="ui-ws-browse__chevron-spacer" aria-hidden="true" />
-        <span className="ui-ws-browse__markers">
-          <span className="ui-ws-browse__format" title={row.format} aria-label={row.format}>
-            {formatGlyph(row.format)}
+    <Fragment>
+      <div className="ui-ws-browse__row ui-ws-browse__row--widgets" role="row">
+        <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell">
+          <IconButton
+            icon={expanded ? "chevron-down" : "chevron-right"}
+            aria-label={expanded ? "Collapse" : "Expand"}
+            aria-expanded={expanded}
+            size="sm"
+            onClick={onToggle}
+          />
+          <span className="ui-ws-browse__markers">
+            <span className="ui-ws-browse__format" title={row.format} aria-label={row.format}>
+              {formatGlyph(row.format)}
+            </span>
           </span>
+          <Badge variant={row.status === "Published" ? "success" : "default"}>{row.status}</Badge>
+          <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
+            {row.slug}
+          </button>
         </span>
-        <Badge variant={row.status === "Published" ? "success" : "default"}>{row.status}</Badge>
-        <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
-          {row.slug}
-        </button>
-      </span>
-      <span role="cell" className="ui-ws-browse__name">{row.widgetName}</span>
-      <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
-      <span role="cell" className="ui-ws-browse__muted">{row.modified}</span>
-      <span role="cell" className="ui-ws-browse__actions">
-        <IconButton icon="eye" aria-label="Preview" size="sm" />
-        <IconButton icon="archive" aria-label="Archive" size="sm" />
-        <IconButton icon="trash" aria-label="Delete" size="sm" variant="tertiary" />
-      </span>
+        <span role="cell" className="ui-ws-browse__name">{row.widgetName}</span>
+        <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
+        <span role="cell" className="ui-ws-browse__muted">{row.modified}</span>
+        <span role="cell" className="ui-ws-browse__actions">
+          <IconButton icon="eye" aria-label="Preview" size="sm" />
+          <IconButton icon="archive" aria-label="Archive" size="sm" />
+          <IconButton icon="trash" aria-label="Delete" size="sm" variant="tertiary" />
+        </span>
+      </div>
+      {expanded && (
+        <div className="ui-ws-browse__widget-children" role="rowgroup">
+          <div className="ui-ws-browse__widget-children-label">Pages :</div>
+          {row.children.length === 0 ? (
+            <div className="ui-ws-browse__widget-child" role="row">
+              <span className="ui-ws-browse__muted">Subpages not captured in this preview yet.</span>
+            </div>
+          ) : (
+            row.children.map((c) => <WidgetChildItem key={c.id} child={c} />)
+          )}
+        </div>
+      )}
+    </Fragment>
+  );
+}
+
+// Subpage = a page that uses this widget. Read-only here: the page itself is
+// authored in the Pages editor, not from the Widgets list.
+function WidgetChildItem({ child }: { child: WidgetChildRow }) {
+  return (
+    <div className="ui-ws-browse__widget-child" role="row">
+      <Badge variant={child.status === "Published" ? "success" : "default"}>{child.status}</Badge>
+      <span className="ui-ws-browse__slug-link">{child.name}</span>
     </div>
   );
 }
