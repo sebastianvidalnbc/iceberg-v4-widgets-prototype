@@ -905,8 +905,6 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
 .ui-ws-browse__slug > .ui-badge { justify-self: start; }
 /* Content Pages has no chevron or family marker, so the status pill starts at the left edge. */
 .ui-ws-browse__slug--flush { grid-template-columns: var(--browse-status-w) minmax(0, 1fr); }
-/* Top-level leaf: no chevron slot, so its marker lines up with group chevrons. */
-.ui-ws-browse__slug--top-leaf { grid-template-columns: var(--browse-marker-w) var(--browse-status-w) minmax(0, 1fr); }
 .ui-ws-browse__slug > .ui-ws-browse__markers { justify-self: start; }
 .ui-ws-browse__chevron-spacer { width: var(--control-height-sm); flex: none; }
 .ui-ws-browse__slug-link { display: block; border: 0; background: none; padding: 0; font: inherit; color: var(--color-action-primary); font-weight: var(--fw-semibold); cursor: pointer; text-align: left; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -1014,73 +1012,20 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
 .ui-table-footer__range { color: var(--color-text-primary); white-space: nowrap; }
 .ui-table-footer__nav { display: flex; align-items: center; gap: 2px; }
 
-/* Collapsible group header spanning the full table width. Quiet subtle
-   surface so it reads as a grouping band, not a data row. Used on Pages and
-   Widgets. Wayfinding hue is set via --fam / --fam-tint / --fam-ink. */
-.ui-ws-browse__group {
-  --fam: var(--color-text-muted);
-  --fam-tint: var(--color-bg-panel);
-  --fam-ink: var(--color-text-muted);
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-bottom: var(--border-width) solid var(--color-border-subtle);
-  background: var(--color-bg-subtle);
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-lh);
-  font-weight: var(--fw-semibold);
-  text-align: left;
-}
-.ui-ws-browse__group::before {
+/* Top-level Pages rows share the normal row grid with subpages. The 3px bar
+   carries the row's wayfinding hue (--fam); the count pill uses the same hue. */
+.ui-ws-browse__row--top { position: relative; }
+.ui-ws-browse__row--top::before {
   content: "";
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 3px;
   background: var(--fam);
 }
-.ui-ws-browse__group:hover { background: var(--color-bg-hover); }
-.ui-ws-browse__group-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-.ui-ws-browse__group-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
-.ui-ws-browse__group-chevron { color: var(--color-text-muted); flex: none; }
-.ui-ws-browse__group-name { flex: 1; min-width: 0; }
-/* Top-level slug that is itself a page: the name opens it, the chevron toggles. */
-.ui-ws-browse__group-toggle--icon { flex: none; }
-.ui-ws-browse__group-open {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: var(--fw-medium);
-  color: var(--color-action-primary);
-  cursor: pointer;
-  text-align: left;
-}
-.ui-ws-browse__group-open:hover { text-decoration: underline; }
-.ui-ws-browse__group-open:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
-.ui-ws-browse__group-count {
+.ui-ws-browse__slug-wrap { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.ui-ws-browse__slug-wrap > .ui-ws-browse__slug-link,
+.ui-ws-browse__slug-wrap > .ui-ws-browse__slug-text { min-width: 0; }
+.ui-ws-browse__top-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1093,54 +1038,8 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
   font-size: inherit;
   line-height: inherit;
   font-weight: var(--fw-semibold);
-  letter-spacing: 0;
-}
-.ui-ws-browse__group-color { position: relative; flex: none; }
-.ui-ws-browse__group-swatch {
-  display: inline-grid;
-  place-items: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  padding: 0;
-  border: var(--border-width) solid var(--color-border-default);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-surface);
-  cursor: pointer;
   flex: none;
 }
-.ui-ws-browse__group-swatch:hover { border-color: var(--color-border-strong); }
-.ui-ws-browse__group-swatch:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.ui-ws-browse__group-swatch-chip {
-  width: var(--space-3);
-  height: var(--space-3);
-  border-radius: var(--radius-pill);
-  background: var(--fam);
-}
-.ui-ws-browse__hue-menu {
-  position: absolute;
-  top: calc(100% + var(--space-1));
-  right: 0;
-  z-index: var(--z-dropdown);
-  display: grid;
-  grid-template-columns: repeat(8, var(--space-6));
-  gap: var(--space-1);
-  padding: var(--space-2);
-  background: var(--color-bg-elevated);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  box-shadow: var(--elevation-1);
-}
-.ui-ws-browse__hue-opt {
-  width: var(--space-6);
-  height: var(--space-6);
-  padding: 0;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-}
-.ui-ws-browse__hue-opt:hover { transform: scale(1.08); }
-.ui-ws-browse__hue-opt:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.ui-ws-browse__hue-opt.is-selected { box-shadow: 0 0 0 2px var(--color-bg-elevated), 0 0 0 4px var(--color-action-primary); }
 .ui-ws-browse__fam-dot,
 .ui-ws-browse__widget-fam-dot {
   width: 8px;

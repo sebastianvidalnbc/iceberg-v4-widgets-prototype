@@ -10,13 +10,13 @@ import {
   buildSlugRows,
   GROUP_SWATCHES,
   groupHueVars,
+  groupSwatch,
   routes,
   navigate,
   type GroupSwatch,
   type GroupSwatchId,
   type SlugRow,
 } from "../browse";
-import { BrowseGroupHeader, useGroupHues } from "../ui-lib/BrowseGroupHeader";
 import { SortHeaderCell, compareSortValues, nextSort, type SortState } from "../ui-lib/SortableHeader";
 
 type VisibilityFilter = "all" | "Visible" | "Hidden";
@@ -81,15 +81,18 @@ function orderRows(allRows: SlugRow[], sort: SortState<SortKey>, flat: boolean):
 // pagination are prototype no-ops.
 export function PagesView() {
   const allRows = useMemo(() => buildSlugRows(), []);
-  const { swatchFor, setGroupHue } = useGroupHues();
-  const pageHueDefaults = useMemo(() => {
-    const ids = [...new Set(allRows.filter((r) => r.depth === 0 && r.hasChildren).map((r) => r.groupId))];
+  // Every top-level slug gets a default hue for its marker bar. Colour is not
+  // user-selectable on this list.
+  const hueByGroup = useMemo(() => {
     const map: Record<string, GroupSwatchId> = {};
-    ids.forEach((id, i) => {
-      map[id] = GROUP_SWATCHES[i % GROUP_SWATCHES.length].id;
-    });
+    allRows
+      .filter((r) => r.depth === 0)
+      .forEach((r, i) => {
+        map[r.groupId] = GROUP_SWATCHES[i % GROUP_SWATCHES.length].id;
+      });
     return map;
   }, [allRows]);
+  const swatchOf = (groupId: string): GroupSwatch => groupSwatch(hueByGroup[groupId] ?? "gray");
   const [query, setQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
   const [page, setPage] = useState(0);
@@ -209,33 +212,15 @@ export function PagesView() {
             description="Try a different slug or clear the search/filters."
           />
         ) : (
-          pageRows.map((r) => {
-            const fallback = pageHueDefaults[r.groupId] ?? "gray";
-            const swatch = swatchFor(r.groupId, fallback);
-            if (r.depth === 0 && r.hasChildren) {
-              return (
-                <BrowseGroupHeader
-                  key={r.id}
-                  name={r.slug}
-                  count={r.childCount}
-                  collapsed={!expanded.has(r.id)}
-                  swatch={swatch}
-                  onToggle={() => toggle(r.id)}
-                  onOpen={() => navigate(r.variantCount > 0 ? routes.variants(r.id) : routes.editor("page", r.id))}
-                  onSwatchChange={(id) => setGroupHue(r.groupId, id)}
-                />
-              );
-            }
-            return (
-              <PageRow
-                key={r.id}
-                row={r}
-                expanded={expanded.has(r.id)}
-                swatch={r.depth > 0 ? swatch : undefined}
-                onToggle={() => toggle(r.id)}
-              />
-            );
-          })
+          pageRows.map((r) => (
+            <PageRow
+              key={r.id}
+              row={r}
+              expanded={expanded.has(r.id)}
+              swatch={swatchOf(r.groupId)}
+              onToggle={() => toggle(r.id)}
+            />
+          ))
         )}
       </div>
 
@@ -258,34 +243,34 @@ function PageRow({
 }: {
   row: SlugRow;
   expanded: boolean;
-  swatch?: GroupSwatch;
+  swatch: GroupSwatch;
   onToggle: () => void;
 }) {
-  // A slug is clickable when it is an editable experience: either it owns
-  // Variants (→ Variants list) or it is a leaf route with no sub-pages
-  // (→ straight to the editor). Parent slugs that own sub-pages stay
-  // expand-only — opening one would just repeat its children in the editor's
-  // Structure tree, which is redundant.
+  // Top-level slugs are always clickable: they open their Variants list when
+  // they own variants, otherwise the editor. Subpages are clickable when they
+  // are a leaf or own variants; a subpage that has its own subpages only expands.
+  const isTop = row.depth === 0;
   const ownsVariants = row.variantCount > 0;
   const isLeaf = !row.hasChildren;
-  const clickable = ownsVariants || isLeaf;
+  const clickable = isTop || ownsVariants || isLeaf;
   const open = () => {
     if (!clickable) return;
     navigate(ownsVariants ? routes.variants(row.id) : routes.editor("page", row.id));
   };
-  // Top-level leaf pages (e.g. /faqs) start where the group headers' chevrons
-  // start, so they carry no chevron slot. Children indent one level under
-  // their top-level slug and keep the slot.
-  const isTopLevelLeaf = row.depth === 0 && !row.hasChildren;
-  const nest = row.depth;
+  // Children indent one level under their top-level slug. Every top-level row
+  // (leaf or group) uses the same chevron slot, so they line up.
   return (
-    <div className="ui-ws-browse__row" role="row" style={swatch ? groupHueVars(swatch) : undefined}>
+    <div
+      className={`ui-ws-browse__row${isTop ? " ui-ws-browse__row--top" : ""}`}
+      role="row"
+      style={groupHueVars(swatch)}
+    >
       <span
-        className={`ui-ws-browse__slug ui-ws-browse__primary${isTopLevelLeaf ? " ui-ws-browse__slug--top-leaf" : ""}`}
+        className="ui-ws-browse__slug ui-ws-browse__primary"
         role="cell"
-        style={{ paddingLeft: `calc(${nest} * var(--space-5))` }}
+        style={{ paddingLeft: `calc(${row.depth} * var(--space-5))` }}
       >
-        {isTopLevelLeaf ? null : row.hasChildren ? (
+        {row.hasChildren ? (
           <IconButton
             icon={expanded ? "chevron-down" : "chevron-right"}
             aria-label={expanded ? "Collapse" : "Expand"}
@@ -305,16 +290,23 @@ function PageRow({
           </span>
         </span>
         <Badge variant={row.status === "Published" ? "success" : "default"}>{row.status}</Badge>
-        {clickable ? (
-          <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
-            {row.slug}
-            {ownsVariants && (
-              <span className="ui-ws-browse__slug-count">{row.variantCount} variants</span>
-            )}
-          </button>
-        ) : (
-          <span className="ui-ws-browse__slug-text">{row.slug}</span>
-        )}
+        <span className="ui-ws-browse__slug-wrap">
+          {clickable ? (
+            <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
+              {row.slug}
+              {ownsVariants && (
+                <span className="ui-ws-browse__slug-count">{row.variantCount} variants</span>
+              )}
+            </button>
+          ) : (
+            <span className="ui-ws-browse__slug-text">{row.slug}</span>
+          )}
+          {isTop && row.hasChildren && (
+            <span className="ui-ws-browse__top-count" title="Subpages">
+              {row.childCount}
+            </span>
+          )}
+        </span>
       </span>
       <span role="cell">
         <StatusDot status={row.visibility === "Visible" ? "success" : "default"}>{row.visibility}</StatusDot>
