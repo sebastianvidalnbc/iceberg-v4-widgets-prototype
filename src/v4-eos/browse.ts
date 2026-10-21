@@ -8,6 +8,7 @@
 import { PAGES_TREE, WIDGETS_TREE, VARIANTS, type TreeNode } from "./data";
 import { allWidgets, productionWidgetId } from "./widget-create";
 import { PRODUCTION_WIDGET_SUBPAGES } from "./production-widget-subpages";
+import { addDays, dayKey, parseSampleDay } from "./schedule";
 
 // The browse layer serves two parallel collection contexts that share identical
 // table machinery: Pages (PAGES_TREE) and Widgets (WIDGETS_TREE). A single
@@ -174,8 +175,10 @@ export interface VariantRow {
   qaStatus: "Approved" | "In review" | "—";
   optimizely: boolean;
   published: boolean;
-  scheduled: string;
-  unpublished: string;
+  // Scheduled release and un-publish days; the scheduled day is always before
+  // the un-publish day (enforced by the variant table's date pickers).
+  scheduledAt: Date | null;
+  unpublishedAt: Date | null;
   created: string;
   lastModified: string;
   lastModifiedBy: string;
@@ -184,14 +187,21 @@ export interface VariantRow {
 function toVariantRow(node: TreeNode): VariantRow {
   const h = hash(node.id);
   const known = !!VARIANTS[node.id];
+  const scheduledAt = h % 6 === 0 ? parseSampleDay(sampleDate(node.id, 11)) : null;
+  const sampleUnpublish = h % 8 === 0 ? parseSampleDay(sampleDate(node.id, 13)) : null;
+  // Keep sample data valid: a scheduled release comes before its un-publish day.
+  const unpublishedAt =
+    scheduledAt && sampleUnpublish && dayKey(sampleUnpublish) <= dayKey(scheduledAt)
+      ? addDays(scheduledAt, 14)
+      : sampleUnpublish;
   return {
     id: node.id,
     name: node.label,
     qaStatus: h % 3 === 0 ? "Approved" : h % 3 === 1 ? "In review" : "—",
     optimizely: h % 2 === 0,
     published: h % 4 === 0,
-    scheduled: h % 6 === 0 ? sampleDate(node.id, 11) : "not scheduled",
-    unpublished: h % 8 === 0 ? sampleDate(node.id, 13) : "not scheduled",
+    scheduledAt,
+    unpublishedAt,
     created: sampleDate(node.id, 2),
     lastModified: known ? sampleModified(node.id) : sampleDate(node.id, 3),
     lastModifiedBy: EDITORS[h % EDITORS.length],

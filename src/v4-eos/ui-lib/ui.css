@@ -913,6 +913,69 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
 .ui-ws-browse__slug-text { font-family: inherit; font-size: inherit; line-height: inherit; font-weight: var(--fw-medium); color: var(--color-text-primary); }
 .ui-ws-browse__slug-count { font-size: inherit; line-height: inherit; color: var(--color-text-muted); font-weight: 400; margin-left: var(--space-2); }
 .ui-ws-browse__muted { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+/* Calendar picker for variant schedule dates (ui-lib/DateField.tsx). */
+.ui-date-field__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.ui-date-field__trigger.is-empty { color: var(--color-text-muted); }
+.ui-date-field__trigger:hover { color: var(--color-action-primary); }
+.ui-date-field__trigger:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+.ui-date-field__panel {
+  z-index: var(--z-dropdown);
+  width: 248px;
+  padding: var(--space-3);
+  background: var(--color-bg-elevated);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-1);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-lh);
+  color: var(--color-text-primary);
+}
+.ui-date-field__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); }
+.ui-date-field__month { font-weight: var(--fw-semibold); }
+.ui-date-field__nav {
+  display: inline-grid;
+  place-items: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ui-date-field__nav:hover { background: var(--color-bg-hover); }
+.ui-date-field__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.ui-date-field__weekday { text-align: center; padding: var(--space-1) 0; color: var(--color-text-muted); }
+.ui-date-field__day {
+  height: var(--space-6);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.ui-date-field__day:hover:not(:disabled) { background: var(--color-bg-hover); }
+.ui-date-field__day:disabled { color: var(--color-text-muted); opacity: 0.4; cursor: not-allowed; }
+.ui-date-field__day.is-selected { background: var(--color-action-primary); color: var(--color-text-inverse); }
+.ui-date-field__day:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-date-field__hint { margin: var(--space-2) 0 0; color: var(--color-text-muted); }
+.ui-date-field__foot { display: flex; justify-content: space-between; margin-top: var(--space-3); }
 /* Data cells never wrap: one line each, so every row keeps the same height and
    long values truncate instead of pushing the next column out of line. */
 .ui-ws-browse__row > [role="cell"]:not(.ui-ws-browse__slug):not(.ui-ws-browse__actions) {

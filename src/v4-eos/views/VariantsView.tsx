@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, IconButton } from "../ui-lib/Button";
+import { DateField } from "../ui-lib/DateField";
 import { Icon } from "../ui-lib/Icon";
 import { Badge, StatusDot } from "../ui-lib/Badge";
 import { SearchInput } from "../ui-lib/TextInput";
@@ -14,8 +15,14 @@ import {
   navigate,
   type VariantRow,
 } from "../browse";
+import { addDays, formatDay } from "../schedule";
 
 type QaFilter = "all" | "Approved" | "In review";
+
+// Edited schedule dates per variant. Kept at module level so an edit survives
+// moving into the editor and back; a full page reload resets the prototype.
+type ScheduleDates = Pick<VariantRow, "scheduledAt" | "unpublishedAt">;
+const scheduleEdits = new Map<string, ScheduleDates>();
 
 // Variants list — the second browse level ("Variants for /slug" in real
 // Iceberg; Figma 488:8901: CardHeader → Toolbar → Filters → Table →
@@ -24,7 +31,16 @@ type QaFilter = "all" | "Approved" | "In review";
 // pagination are prototype no-ops.
 export function VariantsView({ pageId }: { pageId: string }) {
   const page = useMemo(() => findPageNode(pageId), [pageId]);
-  const allRows = useMemo(() => buildVariantRows(pageId), [pageId]);
+  const baseRows = useMemo(() => buildVariantRows(pageId), [pageId]);
+  const [scheduleVersion, setScheduleVersion] = useState(0);
+  const allRows = useMemo(
+    () => baseRows.map((r) => ({ ...r, ...(scheduleEdits.get(r.id) ?? {}) })),
+    [baseRows, scheduleVersion]
+  );
+  const setSchedule = (row: VariantRow, patch: Partial<ScheduleDates>) => {
+    scheduleEdits.set(row.id, { scheduledAt: row.scheduledAt, unpublishedAt: row.unpublishedAt, ...patch });
+    setScheduleVersion((v) => v + 1);
+  };
   const [query, setQuery] = useState("");
   const [qaFilter, setQaFilter] = useState<QaFilter>("all");
   const [pageIndex, setPageIndex] = useState(0);
@@ -118,7 +134,7 @@ export function VariantsView({ pageId }: { pageId: string }) {
             description="Try a different name or clear the search/filters."
           />
         ) : (
-          pageRows.map((r) => <VariantRowItem key={r.id} row={r} />)
+          pageRows.map((r) => <VariantRowItem key={r.id} row={r} onSchedule={(patch) => setSchedule(r, patch)} />)
         )}
       </div>
 
@@ -139,8 +155,18 @@ function qaBadge(qa: VariantRow["qaStatus"]) {
   return <span className="ui-ws-browse__muted">—</span>;
 }
 
-function VariantRowItem({ row }: { row: VariantRow }) {
+// Scheduled release and un-publish are one range: the scheduled day must stay
+// strictly before the un-publish day, so each picker is bounded by the other.
+function VariantRowItem({
+  row,
+  onSchedule,
+}: {
+  row: VariantRow;
+  onSchedule: (patch: Partial<ScheduleDates>) => void;
+}) {
   const open = () => navigate(routes.editor("page", row.id));
+  const scheduleLatest = row.unpublishedAt ? addDays(row.unpublishedAt, -1) : null;
+  const unpublishEarliest = row.scheduledAt ? addDays(row.scheduledAt, 1) : null;
   return (
     <div className="ui-ws-browse__row" role="row">
       <span className="ui-ws-browse__primary" role="cell">
@@ -163,8 +189,26 @@ function VariantRowItem({ row }: { row: VariantRow }) {
           {row.published ? "Published" : "Unpublished"}
         </StatusDot>
       </span>
-      <span role="cell" className="ui-ws-browse__muted">{row.scheduled}</span>
-      <span role="cell" className="ui-ws-browse__muted">{row.unpublished}</span>
+      <span role="cell">
+        <DateField
+          label="Scheduled time"
+          value={row.scheduledAt}
+          onChange={(scheduledAt) => onSchedule({ scheduledAt })}
+          latest={scheduleLatest}
+          placeholder="not scheduled"
+          hint={row.unpublishedAt ? `Before un-publish (${formatDay(row.unpublishedAt)})` : undefined}
+        />
+      </span>
+      <span role="cell">
+        <DateField
+          label="Un-Published time"
+          value={row.unpublishedAt}
+          onChange={(unpublishedAt) => onSchedule({ unpublishedAt })}
+          earliest={unpublishEarliest}
+          placeholder="not scheduled"
+          hint={row.scheduledAt ? `After scheduled (${formatDay(row.scheduledAt)})` : undefined}
+        />
+      </span>
       <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
       <span role="cell" className="ui-ws-browse__muted">{row.lastModified}</span>
       <span role="cell" className="ui-ws-browse__muted">{row.lastModifiedBy}</span>
