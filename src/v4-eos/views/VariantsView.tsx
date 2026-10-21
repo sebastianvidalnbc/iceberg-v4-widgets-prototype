@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, IconButton } from "../ui-lib/Button";
 import { DateField } from "../ui-lib/DateField";
 import { Switch } from "../ui/switch";
+import { PublishCheckDialog } from "../regions/PublishCheckDialog";
+import { publishChecks } from "../publish-check";
 import { Icon } from "../ui-lib/Icon";
 import { Badge } from "../ui-lib/Badge";
 import { SearchInput } from "../ui-lib/TextInput";
@@ -47,6 +49,8 @@ export function VariantsView({ pageId }: { pageId: string }) {
     });
     setScheduleVersion((v) => v + 1);
   };
+  // Variant whose Publish switch was turned on; it goes live only after confirming.
+  const [publishing, setPublishing] = useState<VariantRow | null>(null);
   const [query, setQuery] = useState("");
   const [qaFilter, setQaFilter] = useState<QaFilter>("all");
   const [pageIndex, setPageIndex] = useState(0);
@@ -139,9 +143,27 @@ export function VariantsView({ pageId }: { pageId: string }) {
             description="Try a different name or clear the search/filters."
           />
         ) : (
-          pageRows.map((r) => <VariantRowItem key={r.id} row={r} onSchedule={(patch) => setSchedule(r, patch)} />)
+          pageRows.map((r) => (
+            <VariantRowItem
+              key={r.id}
+              row={r}
+              onSchedule={(patch) => setSchedule(r, patch)}
+              onRequestPublish={() => setPublishing(r)}
+            />
+          ))
         )}
       </div>
+
+      <PublishCheckDialog
+        open={publishing !== null}
+        onOpenChange={(o) => {
+          if (!o) setPublishing(null);
+        }}
+        checks={publishing ? publishChecks(slug, publishing.name) : []}
+        onConfirm={() => {
+          if (publishing) setSchedule(publishing, { published: true });
+        }}
+      />
 
       <TableFooter
         page={pageIndex}
@@ -165,9 +187,11 @@ function qaBadge(qa: VariantRow["qaStatus"]) {
 function VariantRowItem({
   row,
   onSchedule,
+  onRequestPublish,
 }: {
   row: VariantRow;
   onSchedule: (patch: Partial<ScheduleDates>) => void;
+  onRequestPublish: () => void;
 }) {
   const open = () => navigate(routes.editor("page", row.id));
   const scheduleLatest = row.unpublishedAt ? addDays(row.unpublishedAt, -1) : null;
@@ -192,7 +216,7 @@ function VariantRowItem({
         <Switch
           size="sm"
           checked={row.published}
-          onCheckedChange={(published) => onSchedule({ published })}
+          onCheckedChange={(published) => (published ? onRequestPublish() : onSchedule({ published: false }))}
           aria-label={`Publish ${row.name}`}
         />
       </span>
