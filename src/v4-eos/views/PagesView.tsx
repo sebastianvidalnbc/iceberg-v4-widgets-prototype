@@ -117,20 +117,29 @@ export function PagesView() {
   // a flat, fully-matching list (same as real Iceberg's filtered results).
   const q = query.trim().toLowerCase();
   const flatMode = q !== "" || visibilityFilter !== "all";
-  const rows = useMemo(() => {
+  // Pagination counts top-level slugs only. Each unit is one top-level row plus
+  // its visible sub-pages, so expanding or collapsing a group never moves rows
+  // between pages. Flat mode (search/filter) has no tree, so each match is a unit.
+  const units = useMemo<SlugRow[][]>(() => {
     if (flatMode) {
       const matches = allRows.filter((r) => {
         if (q && !r.slug.toLowerCase().includes(q)) return false;
         if (visibilityFilter !== "all" && r.visibility !== visibilityFilter) return false;
         return true;
       });
-      return orderRows(matches, sort, true);
+      return orderRows(matches, sort, true).map((r) => [r]);
     }
-    const out: SlugRow[] = [];
+    const out: SlugRow[][] = [];
     let hiddenBelow = Infinity;
     for (const r of orderRows(allRows, sort, false)) {
-      if (r.depth > hiddenBelow) continue;
-      out.push(r);
+      if (r.depth === 0) {
+        out.push([r]);
+        hiddenBelow = Infinity;
+      } else if (r.depth > hiddenBelow) {
+        continue;
+      } else {
+        out[out.length - 1].push(r);
+      }
       hiddenBelow = r.hasChildren && !expanded.has(r.id) ? r.depth : Infinity;
     }
     return out;
@@ -139,7 +148,7 @@ export function PagesView() {
   // Reset to page 1 whenever the visible row set changes shape.
   useEffect(() => setPage(0), [q, visibilityFilter, pageSize, sort]);
 
-  const pageRows = rows.slice(page * pageSize, page * pageSize + pageSize);
+  const pageRows = units.slice(page * pageSize, page * pageSize + pageSize).flat();
 
   return (
     <div className="ui-ws-browse">
@@ -233,7 +242,7 @@ export function PagesView() {
       <TableFooter
         page={page}
         pageSize={pageSize}
-        total={rows.length}
+        total={units.length}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
