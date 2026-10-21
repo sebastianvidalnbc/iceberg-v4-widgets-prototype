@@ -315,7 +315,6 @@ function PageRow({
       <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
       <span role="cell" className="ui-ws-browse__muted">{row.modified}</span>
       <span role="cell" className="ui-ws-browse__actions">
-        <IconButton icon="plus" aria-label="Add" size="sm" />
         <IconButton icon="eye" aria-label="Preview" size="sm" />
         <IconButton icon="copy" aria-label="Duplicate" size="sm" />
         <IconButton icon="archive" aria-label="Archive" size="sm" />
