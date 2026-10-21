@@ -184,17 +184,24 @@ function WidgetRowItem({
   onToggle: () => void;
 }) {
   const open = () => navigate(routes.editor("widget", row.id));
+  // Same rule as Pages: only rows with subpages get a chevron; the others keep
+  // the empty slot so slugs, format pills and status pills stay in one column.
+  const hasSubpages = row.children.length > 0;
   return (
     <Fragment>
       <div className="ui-ws-browse__row ui-ws-browse__row--widgets" role="row">
         <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell">
-          <IconButton
-            icon={expanded ? "chevron-down" : "chevron-right"}
-            aria-label={expanded ? "Collapse" : "Expand"}
-            aria-expanded={expanded}
-            size="sm"
-            onClick={onToggle}
-          />
+          {hasSubpages ? (
+            <IconButton
+              icon={expanded ? "chevron-down" : "chevron-right"}
+              aria-label={expanded ? "Collapse" : "Expand"}
+              aria-expanded={expanded}
+              size="sm"
+              onClick={onToggle}
+            />
+          ) : (
+            <span className="ui-ws-browse__chevron-spacer" aria-hidden="true" />
+          )}
           <span className="ui-ws-browse__markers">
             <span className="ui-ws-browse__format" title={row.format} aria-label={row.format}>
               {formatGlyph(row.format)}
@@ -210,6 +217,7 @@ function WidgetRowItem({
         <span role="cell" className="ui-ws-browse__muted">{row.modified}</span>
         <span role="cell" className="ui-ws-browse__actions">
           <IconButton icon="eye" aria-label="Preview" size="sm" />
+          <IconButton icon="copy" aria-label="Duplicate" size="sm" />
           <IconButton icon="archive" aria-label="Archive" size="sm" />
           <IconButton icon="trash" aria-label="Delete" size="sm" variant="tertiary" />
         </span>
