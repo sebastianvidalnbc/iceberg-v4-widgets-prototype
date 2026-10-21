@@ -859,9 +859,12 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
 .ui-ws-browse__table--widgets .ui-ws-browse__row,
 .ui-ws-browse__table--content-pages .ui-ws-browse__row { min-width: var(--browse-row-min); }
 .ui-ws-browse__row { display: grid; grid-template-columns: var(--browse-cols); align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-bottom: var(--border-width) solid var(--color-border-subtle); font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-lh); }
-/* Variants: Name · QA · Optimizely · Publish · Scheduled · Un-Published · Created · Modified · By · Actions */
+/* Variants: Name · QA · Optimizely · Publish · Scheduled · Un-Published · Created · Modified · By.
+   Row actions float over the row on hover instead of taking a grid track, so the
+   columns and their titles stay aligned. */
 .ui-ws-browse__table--variants { overflow-x: auto; }
 .ui-ws-browse__table--variants .ui-ws-browse__row {
+  position: relative;
   grid-template-columns:
     minmax(9rem, 1.5fr)
     minmax(5.5rem, 0.7fr)
@@ -871,9 +874,22 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
     minmax(8rem, 1fr)
     minmax(5rem, 0.75fr)
     minmax(6.5rem, 0.9fr)
-    minmax(7rem, 1fr)
-    auto;
+    minmax(7rem, 1fr);
 }
+.ui-ws-browse__table--variants .ui-ws-browse__actions--float {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  padding: 2px var(--space-1);
+  background: var(--color-bg-elevated);
+  border: var(--border-width) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-1);
+}
+.ui-ws-browse__table--variants .ui-ws-browse__row:not(.ui-ws-browse__row--head):hover .ui-ws-browse__actions--float,
+.ui-ws-browse__table--variants .ui-ws-browse__actions--float:focus-within { display: flex; }
 /* Widgets: Slug (format sits in the markers slot) · Name (tracks 2-3) · Created · Modified · Actions */
 .ui-ws-browse__table--widgets .ui-ws-browse__row > :nth-child(2) { grid-column: span 2; }
 .ui-ws-browse__row:last-child { border-bottom: 0; }

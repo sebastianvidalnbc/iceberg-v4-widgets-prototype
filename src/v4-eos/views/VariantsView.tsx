@@ -125,7 +125,6 @@ export function VariantsView({ pageId }: { pageId: string }) {
           <span role="columnheader">Created</span>
           <span role="columnheader">Last modified</span>
           <span role="columnheader">Last modified by</span>
-          <span role="columnheader" aria-label="Actions" />
         </div>
 
         {pageRows.length === 0 ? (
@@ -212,7 +211,8 @@ function VariantRowItem({
       <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
       <span role="cell" className="ui-ws-browse__muted">{row.lastModified}</span>
       <span role="cell" className="ui-ws-browse__muted">{row.lastModifiedBy}</span>
-      <span role="cell" className="ui-ws-browse__actions">
+      {/* Floating row actions: shown on hover over the row's right edge, not a column. */}
+      <span className="ui-ws-browse__actions ui-ws-browse__actions--float">
         <IconButton icon="edit" aria-label="Edit" size="sm" onClick={open} />
         <IconButton icon="copy" aria-label="Duplicate" size="sm" />
         <IconButton icon="archive" aria-label="Archive" size="sm" />
