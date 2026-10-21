@@ -1119,6 +1119,17 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
   width: 3px;
   background: var(--fam);
 }
+/* Widget rows carry their layout type's colour (data-layout-type sets --layout-accent,
+   see layout-identity.css): a 3px leading bar and a faint wash of the same accent. */
+.ui-ws-browse__row--categorized { position: relative; background: color-mix(in srgb, var(--layout-accent) 6%, transparent); }
+.ui-ws-browse__row--categorized::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--layout-accent);
+}
+.ui-ws-browse__row--categorized:not(.ui-ws-browse__row--head):hover { background: color-mix(in srgb, var(--layout-accent) 12%, transparent); }
 .ui-ws-browse__slug-wrap { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .ui-ws-browse__slug-wrap > .ui-ws-browse__slug-link,
 .ui-ws-browse__slug-wrap > .ui-ws-browse__slug-text { min-width: 0; }

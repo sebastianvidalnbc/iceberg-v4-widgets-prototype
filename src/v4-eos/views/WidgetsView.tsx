@@ -1,15 +1,17 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Button, IconButton } from "../ui-lib/Button";
 import { Badge } from "../ui-lib/Badge";
+import { MSym } from "../ui/msym";
 import { SearchInput } from "../ui-lib/TextInput";
 import { FilterChip } from "../ui-lib/FilterChip";
 import { TableFooter } from "../ui-lib/TableFooter";
 import { EmptyState } from "../ui-lib/EmptyState";
-import { buildWidgetRows, routes, navigate, type WidgetRow, type WidgetFormat } from "../browse";
+import { buildWidgetRows, routes, navigate, type WidgetRow, type WidgetFormat, type WidgetType } from "../browse";
 import type { WidgetChildRow } from "../browse";
 import { SortHeaderCell, compareSortValues, nextSort, type SortState } from "../ui-lib/SortableHeader";
 import { LayoutPicker } from "../regions/LayoutPicker";
 import { createWidgetFromLayout } from "../widget-create";
+import { LAYOUT_TYPES, type LayoutTypeId } from "../layout-identity";
 
 type SortKey = "slug" | "widgetName" | "createdAt" | "modifiedAt";
 
@@ -32,6 +34,19 @@ function sortValue(row: WidgetRow, key: SortKey): string | number {
       return row.modifiedAt;
   }
 }
+
+// Widget family → the layout type it is built from. Rows take that type's
+// colour, the same one the Layout Picker and Structure Explorer use.
+const WIDGET_LAYOUT_TYPE: Record<WidgetType, LayoutTypeId> = {
+  Retention: "content",
+  "Plan Picker": "plan-picker",
+  Promotions: "commerce",
+  Banner: "hero",
+  Media: "media",
+  SEO: "footer",
+  Legal: "structure",
+  Other: "structure",
+};
 
 // Production format glyphs (list-item.component): HTML → "</>", JSON → "{…}".
 function formatGlyph(format: WidgetFormat): string {
@@ -189,9 +204,15 @@ function WidgetRowItem({
   // Same rule as Pages: only rows with subpages get a chevron; the others keep
   // the empty slot so slugs, format pills and status pills stay in one column.
   const hasSubpages = row.children.length > 0;
+  const layoutType = WIDGET_LAYOUT_TYPE[row.type];
+  const layoutName = LAYOUT_TYPES[layoutType].name;
   return (
     <Fragment>
-      <div className="ui-ws-browse__row ui-ws-browse__row--widgets" role="row">
+      <div
+        className="ui-ws-browse__row ui-ws-browse__row--widgets ui-ws-browse__row--categorized"
+        data-layout-type={layoutType}
+        role="row"
+      >
         <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell">
           {hasSubpages ? (
             <IconButton
@@ -205,6 +226,14 @@ function WidgetRowItem({
             <span className="ui-ws-browse__chevron-spacer" aria-hidden="true" />
           )}
           <span className="ui-ws-browse__markers">
+            <span
+              className="layout-chip"
+              data-layout-type={layoutType}
+              title={layoutName}
+              aria-label={layoutName}
+            >
+              <MSym name={LAYOUT_TYPES[layoutType].icon} size={14} />
+            </span>
             <span className="ui-ws-browse__format" title={row.format} aria-label={row.format}>
               {formatGlyph(row.format)}
             </span>
