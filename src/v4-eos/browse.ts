@@ -9,6 +9,7 @@ import { PAGES_TREE, WIDGETS_TREE, VARIANTS, type TreeNode } from "./data";
 import { allWidgets, productionWidgetId } from "./widget-create";
 import { PRODUCTION_WIDGET_SUBPAGES } from "./production-widget-subpages";
 import { addDays, dayKey, parseSampleDay } from "./schedule";
+import { widgetVariantsFor } from "./widget-variants";
 
 // The browse layer serves two parallel collection contexts that share identical
 // table machinery: Pages (PAGES_TREE) and Widgets (WIDGETS_TREE). A single
@@ -370,6 +371,8 @@ export interface WidgetRow {
   createdAt: number;
   modifiedAt: number;
   children: WidgetChildRow[];
+  /** Number of production variants; a widget with variants opens its Variants list. */
+  variantCount: number;
 }
 
 
@@ -396,6 +399,7 @@ export function buildWidgetRows(): WidgetRow[] {
         name: c.name,
         status: c.status,
       })),
+      variantCount: widgetVariantsFor(w.slug).length,
     };
   });
 }
@@ -440,7 +444,8 @@ export function findPageForVariant(
 // single inline-expandable list (matching real Iceberg's Widgets screen):
 //   #/pages                    → Pages list (default)
 //   #/pages/:pageId             → Variants list for that page
-//   #/widgets                   → Widgets list (rows expand inline; no sub-route)
+//   #/widgets                   → Widgets list (rows expand inline)
+//   #/widgets/:widgetId         → Variants list for that widget
 //   #/content-pages             → Content Pages list (territory templates)
 //   #/content-pages/:id         → Content Page editor for that template
 //   #/editor/:context/:id       → the editor workspace, opened in a specific
@@ -453,6 +458,7 @@ export type V2Route =
   | { view: "pages" }
   | { view: "variants"; pageId: string }
   | { view: "widgets" }
+  | { view: "widget-variants"; widgetId: string }
   | { view: "content-pages" }
   | { view: "content-page-editor"; pageId: string }
   | { view: "editor"; context: BrowseContext; variantId: string }
@@ -463,6 +469,7 @@ export const routes = {
   pages: () => "#/pages",
   variants: (pageId: string) => `#/pages/${pageId}`,
   widgets: () => "#/widgets",
+  widgetVariants: (widgetId: string) => `#/widgets/${widgetId}`,
   contentPages: () => "#/content-pages",
   contentPage: (pageId: string) => `#/content-pages/${pageId}`,
   editor: (context: BrowseContext, variantId: string) =>
@@ -485,6 +492,7 @@ export function parseRoute(hash: string): V2Route {
     }
     return { view: "editor", context: "page", variantId: seg1 };
   }
+  if (head === "widgets" && seg1) return { view: "widget-variants", widgetId: seg1 };
   if (head === "widgets") return { view: "widgets" };
   if (head === "content-pages" && seg1) {
     return { view: "content-page-editor", pageId: seg1 };

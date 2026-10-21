@@ -183,7 +183,9 @@ function WidgetRowItem({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const open = () => navigate(routes.editor("widget", row.id));
+  // Same rule as Pages: a widget with variants opens its Variants list, otherwise the editor.
+  const open = () =>
+    navigate(row.variantCount > 0 ? routes.widgetVariants(row.id) : routes.editor("widget", row.id));
   // Same rule as Pages: only rows with subpages get a chevron; the others keep
   // the empty slot so slugs, format pills and status pills stay in one column.
   const hasSubpages = row.children.length > 0;
@@ -210,6 +212,9 @@ function WidgetRowItem({
           <Badge variant={row.status === "Published" ? "success" : "default"}>{row.status}</Badge>
           <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
             {row.slug}
+            {row.variantCount > 0 && (
+              <span className="ui-ws-browse__slug-count">{row.variantCount} variants</span>
+            )}
           </button>
         </span>
         <span role="cell" className="ui-ws-browse__name">{row.widgetName}</span>

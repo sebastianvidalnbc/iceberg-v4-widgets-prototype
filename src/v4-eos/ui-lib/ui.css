@@ -876,7 +876,8 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
     minmax(6.5rem, 0.9fr)
     minmax(7rem, 1fr);
 }
-.ui-ws-browse__table--variants .ui-ws-browse__actions--float {
+.ui-ws-browse__table--variants .ui-ws-browse__actions--float,
+.ui-ws-browse__table--widget-variants .ui-ws-browse__actions--float {
   position: absolute;
   right: var(--space-3);
   top: 50%;
@@ -889,7 +890,23 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
   box-shadow: var(--elevation-1);
 }
 .ui-ws-browse__table--variants .ui-ws-browse__row:not(.ui-ws-browse__row--head):hover .ui-ws-browse__actions--float,
-.ui-ws-browse__table--variants .ui-ws-browse__actions--float:focus-within { display: flex; }
+.ui-ws-browse__table--variants .ui-ws-browse__actions--float:focus-within,
+.ui-ws-browse__table--widget-variants .ui-ws-browse__row:not(.ui-ws-browse__row--head):hover .ui-ws-browse__actions--float,
+.ui-ws-browse__table--widget-variants .ui-ws-browse__actions--float:focus-within { display: flex; }
+/* Widget variants: edit · name · QA · publish · scheduled · created · modified · by (production columns). */
+.ui-ws-browse__table--widget-variants { overflow-x: auto; }
+.ui-ws-browse__table--widget-variants .ui-ws-browse__row {
+  position: relative;
+  grid-template-columns:
+    2.5rem
+    minmax(9rem, 1.5fr)
+    minmax(5.5rem, 0.7fr)
+    minmax(5.5rem, 0.7fr)
+    minmax(7rem, 1fr)
+    minmax(6.5rem, 0.9fr)
+    minmax(7rem, 1fr)
+    minmax(7rem, 1fr);
+}
 /* Widgets: Slug (format sits in the markers slot) · Name (tracks 2-3) · Created · Modified · Actions */
 .ui-ws-browse__table--widgets .ui-ws-browse__row > :nth-child(2) { grid-column: span 2; }
 .ui-ws-browse__row:last-child { border-bottom: 0; }

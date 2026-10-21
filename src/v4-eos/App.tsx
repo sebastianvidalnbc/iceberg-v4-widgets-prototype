@@ -4,6 +4,7 @@ import { AppShell } from "./AppShell";
 import { HomeView } from "./views/HomeView";
 import { PagesView } from "./views/PagesView";
 import { VariantsView } from "./views/VariantsView";
+import { WidgetVariantsView } from "./views/WidgetVariantsView";
 import { WidgetsView } from "./views/WidgetsView";
 import { ContentPagesView } from "./views/ContentPagesView";
 import { ContentPagesWorkspace } from "./views/ContentPagesWorkspace";
@@ -50,6 +51,13 @@ export default function App() {
     return (
       <AppShell activeContext="widget">
         <WidgetsView />
+      </AppShell>
+    );
+  }
+  if (route.view === "widget-variants") {
+    return (
+      <AppShell activeContext="widget">
+        <WidgetVariantsView widgetId={route.widgetId} />
       </AppShell>
     );
   }
