@@ -212,6 +212,7 @@ export function PagesView() {
                   collapsed={!expanded.has(r.id)}
                   swatch={swatch}
                   onToggle={() => toggle(r.id)}
+                  onOpen={() => navigate(routes.variants(r.id))}
                   onSwatchChange={(id) => setGroupHue(r.groupId, id)}
                 />
               );
@@ -263,7 +264,9 @@ function PageRow({
     if (!clickable) return;
     navigate(ownsVariants ? routes.variants(row.id) : routes.editor("page", row.id));
   };
-  const nest = Math.max(0, row.depth - (swatch ? 1 : 0));
+  // Children indent one level under their top-level slug; top-level pages
+  // (including leaf pages like /faqs) sit at the same level as the group headers.
+  const nest = row.depth;
   return (
     <div className="ui-ws-browse__row" role="row" style={swatch ? groupHueVars(swatch) : undefined}>
       <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell" style={{ paddingLeft: `calc(${nest} * var(--space-5))` }}>
@@ -278,7 +281,6 @@ function PageRow({
           <span className="ui-ws-browse__chevron-spacer" aria-hidden="true" />
         )}
         <span className="ui-ws-browse__markers">
-          {swatch && <span className="ui-ws-browse__fam-dot" aria-hidden="true" />}
           <span
             className={`ui-ws-browse__protect${row.protect ? " is-on" : ""}`}
             title={row.protect ? "This page is protected" : "This page is not protected"}

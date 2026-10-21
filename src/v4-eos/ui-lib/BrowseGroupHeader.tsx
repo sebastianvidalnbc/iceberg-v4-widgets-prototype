@@ -43,6 +43,7 @@ export function BrowseGroupHeader({
   collapsed,
   swatch,
   onToggle,
+  onOpen,
   onSwatchChange,
 }: {
   name: string;
@@ -50,6 +51,8 @@ export function BrowseGroupHeader({
   collapsed: boolean;
   swatch: GroupSwatch;
   onToggle: () => void;
+  // Optional: the top-level slug itself is a page, so its name opens it.
+  onOpen?: () => void;
   onSwatchChange: (id: GroupSwatchId) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -80,16 +83,23 @@ export function BrowseGroupHeader({
     >
       <button
         type="button"
-        className="ui-ws-browse__group-toggle"
+        className={`ui-ws-browse__group-toggle${onOpen ? " ui-ws-browse__group-toggle--icon" : ""}`}
         aria-expanded={!collapsed}
+        aria-label={`${collapsed ? "Expand" : "Collapse"} ${name}`}
         onClick={onToggle}
       >
         <Icon
           name={collapsed ? "chevron-right" : "chevron-down"}
           className="ui-ws-browse__group-chevron"
         />
-        <span className="ui-ws-browse__group-name">{name}</span>
       </button>
+      {onOpen ? (
+        <button type="button" className="ui-ws-browse__group-name ui-ws-browse__group-open" onClick={onOpen}>
+          {name}
+        </button>
+      ) : (
+        <span className="ui-ws-browse__group-name">{name}</span>
+      )}
       <div className="ui-ws-browse__group-color">
         <button
           type="button"

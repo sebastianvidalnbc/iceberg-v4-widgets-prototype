@@ -1061,6 +1061,23 @@ button.ui-ws-nav__brand--link:focus-visible { outline: none; box-shadow: var(--f
 .ui-ws-browse__group-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
 .ui-ws-browse__group-chevron { color: var(--color-text-muted); flex: none; }
 .ui-ws-browse__group-name { flex: 1; min-width: 0; }
+/* Top-level slug that is itself a page: the name opens it, the chevron toggles. */
+.ui-ws-browse__group-toggle--icon { flex: none; }
+.ui-ws-browse__group-open {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--fw-medium);
+  color: var(--color-action-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.ui-ws-browse__group-open:hover { text-decoration: underline; }
+.ui-ws-browse__group-open:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
 .ui-ws-browse__group-count {
   display: inline-flex;
   align-items: center;
