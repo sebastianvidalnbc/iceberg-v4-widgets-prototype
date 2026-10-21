@@ -212,7 +212,7 @@ export function PagesView() {
                   collapsed={!expanded.has(r.id)}
                   swatch={swatch}
                   onToggle={() => toggle(r.id)}
-                  onOpen={() => navigate(routes.variants(r.id))}
+                  onOpen={() => navigate(r.variantCount > 0 ? routes.variants(r.id) : routes.editor("page", r.id))}
                   onSwatchChange={(id) => setGroupHue(r.groupId, id)}
                 />
               );
@@ -264,13 +264,19 @@ function PageRow({
     if (!clickable) return;
     navigate(ownsVariants ? routes.variants(row.id) : routes.editor("page", row.id));
   };
-  // Children indent one level under their top-level slug; top-level pages
-  // (including leaf pages like /faqs) sit at the same level as the group headers.
+  // Top-level leaf pages (e.g. /faqs) start where the group headers' chevrons
+  // start, so they carry no chevron slot. Children indent one level under
+  // their top-level slug and keep the slot.
+  const isTopLevelLeaf = row.depth === 0 && !row.hasChildren;
   const nest = row.depth;
   return (
     <div className="ui-ws-browse__row" role="row" style={swatch ? groupHueVars(swatch) : undefined}>
-      <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell" style={{ paddingLeft: `calc(${nest} * var(--space-5))` }}>
-        {row.hasChildren ? (
+      <span
+        className={`ui-ws-browse__slug ui-ws-browse__primary${isTopLevelLeaf ? " ui-ws-browse__slug--top-leaf" : ""}`}
+        role="cell"
+        style={{ paddingLeft: `calc(${nest} * var(--space-5))` }}
+      >
+        {isTopLevelLeaf ? null : row.hasChildren ? (
           <IconButton
             icon={expanded ? "chevron-down" : "chevron-right"}
             aria-label={expanded ? "Collapse" : "Expand"}
