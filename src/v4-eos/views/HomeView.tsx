@@ -1,14 +1,12 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import { MSym } from "@/v4-eos/ui/msym";
 import { Button } from "@/v4-eos/ui/button";
-import { Input } from "@/v4-eos/ui/input";
-import { Checkbox } from "@/v4-eos/ui/checkbox";
 import { SelectField } from "@/v4-eos/ui/form-controls";
 import { cn } from "@/v4-eos/ui/lib/utils";
 import { navigate, routes } from "../browse";
 
 // The Home dashboard — the landing an author reaches by clicking the Iceberg
-// mark. It mirrors the real Iceberg homepage (UAT configurator, quick links,
+// mark. It mirrors the real Iceberg homepage (quick links,
 // operational KPIs, PASS-score audit, module/layout usage) but re-skinned in the
 // Eos authoring system: warm-neutral surfaces, tonal cards with no resting
 // shadow, Iceberg-blue only for action, and status hues as a semantic family.
@@ -142,82 +140,6 @@ function ActionCard({ icon, label, hint, onClick, disabled }: Action) {
   );
 }
 
-// --- UAT configurator (interactive prototype state) --------------------------
-const COOKIES = [
-  "Add CMS cookies",
-  "Add API cookies",
-  "Add WEB-API cookies",
-  "Add Renderer cookies",
-];
-
-function UatConfigurator() {
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
-  const [pr, setPr] = useState("");
-  const prId = useId();
-  const toggle = (c: string, v?: boolean) =>
-    setChecks((p) => ({ ...p, [c]: v ?? !p[c] }));
-  return (
-    <section className={cn(CARD, "flex flex-col gap-4 p-5")}>
-      <header>
-        <span className={EYEBROW}>UAT Configurator</span>
-        <p className="mt-1 text-[length:var(--type-body-sm-size)] leading-snug text-[var(--color-text-secondary)]">
-          Attach environment cookies for a CMS test build.
-        </p>
-      </header>
-      <div className="grid gap-1 sm:grid-cols-2">
-        {COOKIES.map((c) => (
-          <div key={c} className="flex items-center gap-2.5 py-1">
-            <Checkbox
-              checked={checks[c] ?? false}
-              onCheckedChange={(v) => toggle(c, !!v)}
-            />
-            <span
-              className="cursor-pointer text-[length:var(--type-label-lg-size)] leading-[length:var(--type-label-lg-lh)] text-[var(--color-text-primary)]"
-              onClick={() => toggle(c)}
-            >
-              {c}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div>
-        <label
-          htmlFor={prId}
-          className="mb-1 block text-[length:var(--type-label-md-size)] leading-[length:var(--type-label-md-lh)] font-normal text-[var(--color-text-secondary)]"
-        >
-          PR number
-        </label>
-        <Input
-          id={prId}
-          value={pr}
-          onChange={(e) => setPr(e.target.value)}
-          inputMode="numeric"
-          placeholder="e.g. 4821"
-          className="h-8 max-w-[220px] bg-[var(--color-bg-subtle)] text-[length:var(--type-body-md-size)]"
-        />
-        <p className="mt-1 text-[length:var(--type-body-sm-size)] leading-snug text-[var(--color-text-muted)]">
-          Add a GitHub pull-request number to target its preview build.
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button size="sm" onClick={() => {}}>
-          Apply cookies
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            setChecks({});
-            setPr("");
-          }}
-        >
-          Clear
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 // --- Module / layout usage ----------------------------------------------------
 const MODULE_OPTIONS = [
   "Plan Picker",
@@ -286,9 +208,6 @@ export function HomeView() {
             Peacock Stable-int
           </span>
         </header>
-
-        {/* UAT configurator — first block on the real homepage */}
-        <UatConfigurator />
 
         {/* Quick access */}
         <section aria-label="Quick access" className="flex flex-col gap-3">
