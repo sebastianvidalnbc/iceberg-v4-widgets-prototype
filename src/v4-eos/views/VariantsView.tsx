@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, IconButton } from "../ui-lib/Button";
 import { DateField } from "../ui-lib/DateField";
+import { Switch } from "../ui/switch";
 import { Icon } from "../ui-lib/Icon";
-import { Badge, StatusDot } from "../ui-lib/Badge";
+import { Badge } from "../ui-lib/Badge";
 import { SearchInput } from "../ui-lib/TextInput";
 import { Breadcrumb } from "../ui-lib/Breadcrumb";
 import { FilterChip } from "../ui-lib/FilterChip";
@@ -21,7 +22,7 @@ type QaFilter = "all" | "Approved" | "In review";
 
 // Edited schedule dates per variant. Kept at module level so an edit survives
 // moving into the editor and back; a full page reload resets the prototype.
-type ScheduleDates = Pick<VariantRow, "scheduledAt" | "unpublishedAt">;
+type ScheduleDates = Pick<VariantRow, "scheduledAt" | "unpublishedAt" | "published">;
 const scheduleEdits = new Map<string, ScheduleDates>();
 
 // Variants list — the second browse level ("Variants for /slug" in real
@@ -38,7 +39,12 @@ export function VariantsView({ pageId }: { pageId: string }) {
     [baseRows, scheduleVersion]
   );
   const setSchedule = (row: VariantRow, patch: Partial<ScheduleDates>) => {
-    scheduleEdits.set(row.id, { scheduledAt: row.scheduledAt, unpublishedAt: row.unpublishedAt, ...patch });
+    scheduleEdits.set(row.id, {
+      scheduledAt: row.scheduledAt,
+      unpublishedAt: row.unpublishedAt,
+      published: row.published,
+      ...patch,
+    });
     setScheduleVersion((v) => v + 1);
   };
   const [query, setQuery] = useState("");
@@ -183,10 +189,12 @@ function VariantRowItem({
         <Icon name="flask" size={16} />
       </span>
       <span role="cell">
-        {/* Prototype: publish toggle is a no-op reflecting the sampled state. */}
-        <StatusDot status={row.published ? "success" : "default"}>
-          {row.published ? "Published" : "Unpublished"}
-        </StatusDot>
+        <Switch
+          size="sm"
+          checked={row.published}
+          onCheckedChange={(published) => onSchedule({ published })}
+          aria-label={`Publish ${row.name}`}
+        />
       </span>
       <span role="cell">
         <DateField
