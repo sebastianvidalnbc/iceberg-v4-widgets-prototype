@@ -1,25 +1,14 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, IconButton } from "../ui-lib/Button";
 import { Badge } from "../ui-lib/Badge";
 import { SearchInput } from "../ui-lib/TextInput";
 import { FilterChip } from "../ui-lib/FilterChip";
 import { TableFooter } from "../ui-lib/TableFooter";
 import { EmptyState } from "../ui-lib/EmptyState";
-import {
-  buildWidgetRows,
-  groupHueVars,
-  groupWidgetRows,
-  WIDGET_TYPE_ORDER,
-  WIDGET_TYPE_SWATCH,
-  routes,
-  navigate,
-  type WidgetRow,
-  type WidgetChildRow,
-  type WidgetType,
-  type GroupSwatch,
-} from "../browse";
-import { BrowseGroupHeader, useGroupHues } from "../ui-lib/BrowseGroupHeader";
+import { buildWidgetRows, routes, navigate, type WidgetRow, type WidgetFormat } from "../browse";
 import { SortHeaderCell, compareSortValues, nextSort, type SortState } from "../ui-lib/SortableHeader";
+import { LayoutPicker } from "../regions/LayoutPicker";
+import { createWidgetFromLayout } from "../widget-create";
 
 type SortKey = "slug" | "widgetName" | "createdAt" | "modifiedAt";
 
@@ -43,87 +32,58 @@ function sortValue(row: WidgetRow, key: SortKey): string | number {
   }
 }
 
-// Widgets list — a SINGLE list, now organised by widget Type so 20+ mixed
-// widgets stay scannable (Figma 488:8901: CardHeader → Toolbar → Filters →
-// Table → TableFooter). A Type filter chip row sits above the table and rows
-// are grouped under collapsible Type section headers (Retention pinned
-// first). Search matches slugs; a widget slug still expands INLINE to reveal
-// the entries it owns under a "Pages:" label. Clicking a child opens the
-// editor. All CTAs besides search/filters/pagination are prototype no-ops.
+// Production format glyphs (list-item.component): HTML → "</>", JSON → "{…}".
+function formatGlyph(format: WidgetFormat): string {
+  return format === "HTML" ? "</>" : "{…}";
+}
+
+// Widgets list — the real production Widgets screen (259 widgets), now a flat
+// table: Format filter (All / HTML / JSON), slug search, sortable columns.
+// "+" starts a new widget from the Layout Picker and opens it in the editor
+// with that layout as its first section, the same way a Page gets sections.
 export function WidgetsView() {
   const allRows = useMemo(() => buildWidgetRows(), []);
-  const { swatchFor, setGroupHue } = useGroupHues();
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | WidgetType>("all");
+  const [formatFilter, setFormatFilter] = useState<"all" | WidgetFormat>("all");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [sort, setSort] = useState<SortState<SortKey>>({ key: "modifiedAt", dir: "asc" });
+  const [sort, setSort] = useState<SortState<SortKey>>({ key: "modifiedAt", dir: "desc" });
   const onSort = (key: SortKey) => setSort((prev) => nextSort(prev, key));
-  // Single-open accordion: the id of the currently expanded widget, or null.
-  const [openId, setOpenId] = useState<string | null>(null);
-  // Per-Type collapse memory for the group section headers.
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<WidgetType>>(
-    () => new Set(),
-  );
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const q = query.trim().toLowerCase();
-  const searched = q
-    ? allRows.filter(
-        (r) =>
-          r.slug.toLowerCase().includes(q) || r.widgetName.toLowerCase().includes(q)
-      )
-    : allRows;
+  const searched = q ? allRows.filter((r) => r.slug.toLowerCase().includes(q)) : allRows;
 
-  // Per-Type counts over the current search results — drive the filter chip
-  // labels and hide chips for types with zero matches.
-  const typeCounts = useMemo(() => {
-    const acc = {} as Record<WidgetType, number>;
-    for (const r of searched) acc[r.type] = (acc[r.type] ?? 0) + 1;
+  const formatCounts = useMemo(() => {
+    const acc: Record<WidgetFormat, number> = { HTML: 0, JSON: 0 };
+    for (const r of allRows) acc[r.format] += 1;
     return acc;
-  }, [searched]);
-
-  // If the active type filter has no matches after a search, fall back to All so
-  // the list never looks empty for a still-selected-but-absent type.
-  const effectiveFilter =
-    typeFilter !== "all" && !typeCounts[typeFilter] ? "all" : typeFilter;
+  }, [allRows]);
 
   const filtered = useMemo(() => {
     const base =
-      effectiveFilter === "all"
-        ? searched
-        : searched.filter((r) => r.type === effectiveFilter);
-    // Sorting happens before paging so each page is a slice of the full order.
-    // Groups are formed from the page, so each type keeps this relative order.
+      formatFilter === "all" ? searched : searched.filter((r) => r.format === formatFilter);
+    // Sort before paging so each page is a slice of the full order.
     return [...base].sort((a, b) =>
       compareSortValues(sortValue(a, sort.key), sortValue(b, sort.key), sort.dir),
     );
-  }, [searched, effectiveFilter, sort]);
+  }, [searched, formatFilter, sort]);
 
-  // Reset to page 1 whenever the visible row set changes shape.
-  useEffect(() => setPage(0), [q, effectiveFilter, pageSize, sort]);
+  useEffect(() => setPage(0), [q, formatFilter, pageSize, sort]);
 
   const pageRows = filtered.slice(page * pageSize, page * pageSize + pageSize);
-  const groups = groupWidgetRows(pageRows);
-
-  // Searching, or narrowing to one type, forces every visible group open so
-  // matches are never hidden behind a collapsed header.
-  const forceOpen = q !== "" || effectiveFilter !== "all";
-  const isCollapsed = (t: WidgetType) => !forceOpen && collapsedGroups.has(t);
-
-  const toggleRow = (id: string) => setOpenId((cur) => (cur === id ? null : id));
-  const toggleGroup = (t: WidgetType) =>
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      next.has(t) ? next.delete(t) : next.add(t);
-      return next;
-    });
 
   return (
     <div className="ui-ws-browse">
       <header className="ui-ws-browse__head">
         <div className="ui-ws-browse__title">
           <h1 className="ui-ws-browse__h1">Widgets</h1>
-          <IconButton icon="plus" aria-label="Create widget" className="ui-ws-browse__add" />
+          <IconButton
+            icon="plus"
+            aria-label="Create widget"
+            className="ui-ws-browse__add"
+            onClick={() => setPickerOpen(true)}
+          />
         </div>
       </header>
 
@@ -143,22 +103,19 @@ export function WidgetsView() {
       </div>
 
       <div className="ui-ws-browse__filters">
-        <Button variant="tertiary" size="sm" leadingIcon="filter">
-          All Filters
-        </Button>
-        {WIDGET_TYPE_ORDER.filter((t) => typeCounts[t] > 0).map((t) => (
+        <FilterChip
+          label={`All (${allRows.length})`}
+          active={formatFilter === "all"}
+          onClick={() => setFormatFilter("all")}
+        />
+        {(["HTML", "JSON"] as WidgetFormat[]).map((f) => (
           <FilterChip
-            key={t}
-            label={`${t} (${typeCounts[t]})`}
-            active={effectiveFilter === t}
-            onClick={() => setTypeFilter((f) => (f === t ? "all" : t))}
+            key={f}
+            label={`${f} (${formatCounts[f]})`}
+            active={formatFilter === f}
+            onClick={() => setFormatFilter((cur) => (cur === f ? "all" : f))}
           />
         ))}
-        {effectiveFilter !== "all" && (
-          <Button variant="tertiary" size="sm" leadingIcon="filter-off" onClick={() => setTypeFilter("all")}>
-            Clear Filters
-          </Button>
-        )}
       </div>
 
       <div className="ui-ws-browse__table ui-ws-browse__table--widgets" role="table" aria-label="Widgets">
@@ -169,38 +126,13 @@ export function WidgetsView() {
           <span role="columnheader" aria-label="Actions" />
         </div>
 
-        {groups.length === 0 ? (
+        {pageRows.length === 0 ? (
           <EmptyState
             title="No widgets match your search"
-            description="Try a different slug, clear the search, or switch the type filter."
+            description="Try a different slug or clear the search and format filter."
           />
         ) : (
-          groups.map((g) => {
-            const collapsed = isCollapsed(g.type);
-            const swatch = swatchFor(g.type, WIDGET_TYPE_SWATCH[g.type]);
-            return (
-              <Fragment key={g.type}>
-                <BrowseGroupHeader
-                  name={g.type}
-                  count={g.rows.length}
-                  collapsed={collapsed}
-                  swatch={swatch}
-                  onToggle={() => toggleGroup(g.type)}
-                  onSwatchChange={(id) => setGroupHue(g.type, id)}
-                />
-                {!collapsed &&
-                  g.rows.map((r) => (
-                    <WidgetRowItem
-                      key={r.id}
-                      row={r}
-                      swatch={swatch}
-                      expanded={openId === r.id}
-                      onToggle={() => toggleRow(r.id)}
-                    />
-                  ))}
-              </Fragment>
-            );
-          })
+          pageRows.map((r) => <WidgetRowItem key={r.id} row={r} />)
         )}
       </div>
 
@@ -211,86 +143,45 @@ export function WidgetsView() {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
+
+      <LayoutPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        contextLabel="a new widget"
+        onSelect={(layoutId) => {
+          setPickerOpen(false);
+          const id = createWidgetFromLayout(layoutId);
+          if (id) navigate(routes.editor("widget", id));
+        }}
+      />
     </div>
   );
 }
 
-function WidgetRowItem({
-  row,
-  swatch,
-  expanded,
-  onToggle,
-}: {
-  row: WidgetRow;
-  swatch: GroupSwatch;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  // Leaf vs parent, mirroring Pages: a widget that owns child Pages is
-  // expand-only (its chevron reveals them; each child opens the editor). A
-  // childless widget is itself the editable experience, so its slug opens the
-  // editor directly in widget context.
-  const hasChildren = row.children.length > 0;
-  const openSelf = () =>
-    !hasChildren && navigate(routes.editor("widget", row.id));
+function WidgetRowItem({ row }: { row: WidgetRow }) {
+  const open = () => navigate(routes.editor("widget", row.id));
   return (
-    <>
-      <div className="ui-ws-browse__row ui-ws-browse__row--widgets" role="row" style={groupHueVars(swatch)}>
-        <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell">
-          {hasChildren ? (
-            <IconButton
-              icon={expanded ? "chevron-down" : "chevron-right"}
-              aria-label={expanded ? "Collapse" : "Expand"}
-              aria-expanded={expanded}
-              size="sm"
-              onClick={onToggle}
-            />
-          ) : (
-            <span className="ui-ws-browse__chevron-spacer" aria-hidden="true" />
-          )}
-          <span className="ui-ws-browse__markers">
-            <span className="ui-ws-browse__widget-fam-dot" aria-hidden="true" />
-            <span className="ui-ws-browse__format">{row.format}</span>
+    <div className="ui-ws-browse__row ui-ws-browse__row--widgets" role="row">
+      <span className="ui-ws-browse__slug ui-ws-browse__primary" role="cell">
+        <span className="ui-ws-browse__chevron-spacer" aria-hidden="true" />
+        <span className="ui-ws-browse__markers">
+          <span className="ui-ws-browse__format" title={row.format} aria-label={row.format}>
+            {formatGlyph(row.format)}
           </span>
-          <Badge variant={row.status === "Published" ? "success" : "default"}>{row.status}</Badge>
-          <button
-            type="button"
-            className="ui-ws-browse__slug-link"
-            onClick={hasChildren ? onToggle : openSelf}
-          >
-            {row.slug}
-          </button>
         </span>
-        <span role="cell" className="ui-ws-browse__name">{row.widgetName}</span>
-        <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
-        <span role="cell" className="ui-ws-browse__muted">{row.modified}</span>
-        <span role="cell" className="ui-ws-browse__actions">
-          <IconButton icon="plus" aria-label="Add" size="sm" />
-          <IconButton icon="eye" aria-label="Preview" size="sm" />
-          <IconButton icon="archive" aria-label="Archive" size="sm" />
-          <IconButton icon="trash" aria-label="Delete" size="sm" variant="tertiary" />
-        </span>
-      </div>
-      {hasChildren && expanded && (
-        <div className="ui-ws-browse__widget-children" role="rowgroup">
-          <div className="ui-ws-browse__widget-children-label">Pages:</div>
-          {row.children.map((c) => (
-            <WidgetChildItem key={c.id} child={c} />
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-function WidgetChildItem({ child }: { child: WidgetChildRow }) {
-  const open = () => navigate(routes.editor("widget", child.id));
-  return (
-    <div className="ui-ws-browse__widget-child" role="row">
-      <Badge variant={child.status === "Published" ? "success" : "default"}>{child.status}</Badge>
-      <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
-        {child.name}
-      </button>
+        <Badge variant={row.status === "Published" ? "success" : "default"}>{row.status}</Badge>
+        <button type="button" className="ui-ws-browse__slug-link" onClick={open}>
+          {row.slug}
+        </button>
+      </span>
+      <span role="cell" className="ui-ws-browse__name">{row.widgetName}</span>
+      <span role="cell" className="ui-ws-browse__muted">{row.created}</span>
+      <span role="cell" className="ui-ws-browse__muted">{row.modified}</span>
+      <span role="cell" className="ui-ws-browse__actions">
+        <IconButton icon="eye" aria-label="Preview" size="sm" />
+        <IconButton icon="archive" aria-label="Archive" size="sm" />
+        <IconButton icon="trash" aria-label="Delete" size="sm" variant="tertiary" />
+      </span>
     </div>
   );
 }

@@ -1,4 +1,6 @@
+import { Button } from "@/v4-eos/ui/button";
 import {
+  useEffect,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -539,6 +541,13 @@ function StructureTree({
 
   // Widget top level is presented as two tabs; Configurations opens by default.
   const [activeTab, setActiveTab] = useState<StructureTab>("config");
+  // A widget with sections but no configuration nodes (e.g. built from a layout)
+  // opens on Authoring, where its sections live.
+  const hasConfigNodes = nodes.some((n) => WIDGET_CONFIG_NODE_IDS.has(n.id));
+  const hasContentNodes = nodes.some((n) => !WIDGET_CONFIG_NODE_IDS.has(n.id));
+  useEffect(() => {
+    if (!hasConfigNodes && hasContentNodes) setActiveTab("content");
+  }, [hasConfigNodes, hasContentNodes]);
 
   // Render one top-level sibling list. In grouped (widget) mode the top level is
   // a fixed schema, so its rows aren't drag-reorderable — and splitting the list
@@ -849,12 +858,25 @@ export function Explorer({
           className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-panel)]"
         />
         <ScrollArea className="min-h-0 flex-1" orientation="both">
-          {activeExperience ? (
+          {activeExperience && activeExperience.structure.length === 0 && context === "widget" ? (
+            <div className="flex flex-col items-start gap-3 p-4">
+              <p className="text-[length:var(--type-body-sm-size)] leading-relaxed text-muted-foreground">
+                This widget has no sections yet.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onRequestAddLayout("end", null)}
+              >
+                Start from a layout
+              </Button>
+            </div>
+          ) : activeExperience ? (
             <StructureTree
               nodes={activeExperience.structure}
               selectedId={selectedStructureNodeId}
               expanded={expanded}
-              allowInsert={context === "page"}
+              allowInsert
               allowRowActions
               minimalRowActions={context === "widget"}
               grouped={context === "widget"}

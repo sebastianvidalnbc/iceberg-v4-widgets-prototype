@@ -1,11 +1,13 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { AppShell } from "./AppShell";
+import { widgetCollectionTree } from "./widget-create";
 import { Explorer } from "./regions/Explorer";
 import { LivePreview } from "./regions/LivePreview";
 import { Properties } from "./regions/Properties";
@@ -24,7 +26,6 @@ import {
   WIDGET_CONFIGS,
   DEFAULT_WIDGET_CONFIG_ID,
   PAGES_TREE,
-  WIDGETS_TREE,
   findNode,
   type AuthoringContext,
   type NavDestination,
@@ -220,7 +221,8 @@ export function WorkspaceShell({
   const isPage = context === "page";
 
   // Resolve the region-facing values from whichever context is active.
-  const collectionTree = isPage ? PAGES_TREE : WIDGETS_TREE;
+  const widgetTree = useMemo(() => widgetCollectionTree(), []);
+  const collectionTree = isPage ? PAGES_TREE : widgetTree;
   const collectionHeader = isPage ? "Pages" : "Widgets";
   const selectedRouteId = isPage ? selectedPageId : selectedWidgetId;
   const selectedExperienceId = isPage ? selectedVariantId : selectedWidgetConfigId;

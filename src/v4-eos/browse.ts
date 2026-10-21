@@ -6,6 +6,7 @@
 // publish, last-modified-by) are SAMPLE metadata generated deterministically
 // from each node id, so the tables look realistic without inventing a schema.
 import { PAGES_TREE, WIDGETS_TREE, VARIANTS, type TreeNode } from "./data";
+import { allWidgets, productionWidgetId } from "./widget-create";
 
 // The browse layer serves two parallel collection contexts that share identical
 // table machinery: Pages (PAGES_TREE) and Widgets (WIDGETS_TREE). A single
@@ -360,51 +361,26 @@ export interface WidgetRow {
   children: WidgetChildRow[];
 }
 
-const WIDGET_NAME_ACRONYMS = new Set(["seo", "qa", "css", "html", "json", "bff", "tv", "us"]);
-
-function widgetDisplayName(slug: string): string {
-  const words = slug
-    .replace(/^\//, "")
-    .split("-")
-    .filter(Boolean)
-    .map((w) =>
-      WIDGET_NAME_ACRONYMS.has(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)
-    )
-    .join(" ");
-  return `Web : ${words}`;
-}
-
-function sampleWidgetFormat(slug: string, type: WidgetType): WidgetFormat {
-  if (type === "Retention" || type === "Plan Picker" || type === "SEO") return "JSON";
-  return hash(slug) % 4 === 0 ? "JSON" : "HTML";
-}
 
 // Top-level widget slugs with their inline-expandable children. Only top-level
 // page nodes of WIDGETS_TREE become widget rows; their `variant` children map
 // to the expandable child rows.
 export function buildWidgetRows(): WidgetRow[] {
-  return WIDGETS_TREE.filter((n) => n.type !== "variant").map((node) => {
-    const h = hash(node.id);
-    const children: WidgetChildRow[] = (node.children ?? [])
-      .filter((c) => c.type === "variant")
-      .map((c) => ({
-        id: c.id,
-        name: c.label,
-        status: hash(c.id) % 4 === 0 ? "Published" : "Draft",
-      }));
-    const type = classifyWidget(node.label);
+  return allWidgets().map((w) => {
+    const id = productionWidgetId(w.slug);
     return {
-      id: node.id,
-      slug: node.label,
-      type,
-      status: h % 3 === 0 ? "Draft" : "Published",
-      format: sampleWidgetFormat(node.label, type),
-      widgetName: widgetDisplayName(node.label),
-      created: sampleDate(node.id, 1),
-      modified: sampleModified(node.id),
-      createdAt: sampleDateTs(sampleDate(node.id, 1)),
-      modifiedAt: SAMPLE_NOW - sampleModifiedAgo(node.id).hours * 3600_000,
-      children,
+      id,
+      slug: w.slug,
+      type: classifyWidget(w.slug),
+      status: w.status,
+      format: w.format,
+      // Production leaves widgetName empty on every row of the list.
+      widgetName: "",
+      created: w.created,
+      modified: w.modified,
+      createdAt: w.createdAt,
+      modifiedAt: w.modifiedAt,
+      children: [],
     };
   });
 }
